@@ -53,7 +53,10 @@ $router->get('/sistema/auditoria/verificar/exportar', [SistemaController::class,
 // Rotas de Teste (Remover em produção)
 $router->get('/test/audit/setup', [\App\Controllers\TestController::class, 'setup']);
 $router->get('/test/audit/corrupt', [\App\Controllers\TestController::class, 'corrupt']);
-$router->get('/test/audit/verify', [\App\Controllers\TestController::class, 'verify']);
-$router->get('/test/user/setup', [\App\Controllers\TestController::class, 'setupCommonUser']);
+        $router->get('/test/audit/verify', [\App\Controllers\TestController::class, 'verify']);
+        $router->get('/test/user/setup', [\App\Controllers\TestController::class, 'setupCommonUser']);
+        $router->get('/test/ocr', [\App\Controllers\TestController::class, 'testOcr']);
+        $router->get('/test/ocr/setup', [\App\Controllers\TestController::class, 'setupOcrTable']);
+        $router->post('/test/ocr/setup', [\App\Controllers\TestController::class, 'setupOcrTable']);
     }
 }

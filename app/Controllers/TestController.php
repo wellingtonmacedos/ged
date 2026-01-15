@@ -75,6 +75,106 @@ class TestController extends Controller
         echo "</ul>";
     }
 
+    public function testOcr(): void
+    {
+        if (!Auth::check()) {
+            echo "Faça login primeiro.";
+            return;
+        }
+
+        echo "<h1>Teste de Integração OCR</h1>";
+
+        // 1. Verificar Tabela
+        echo "<h2>1. Verificação da Tabela 'documentos_ocr'</h2>";
+        $db = Database::connection();
+        try {
+            $stmt = $db->query("SHOW TABLES LIKE 'documentos_ocr'");
+            $tableExists = $stmt->rowCount() > 0;
+            echo $tableExists 
+                ? "<p style='color:green'>[OK] Tabela 'documentos_ocr' encontrada.</p>" 
+                : "<p style='color:red'>[ERRO] Tabela 'documentos_ocr' NÃO encontrada. Execute o script de migração.</p>";
+            
+            if (!$tableExists) {
+                 echo "<form action='/test/ocr/setup' method='post'><button type='submit'>Criar Tabela Agora</button></form>";
+            }
+        } catch (\Exception $e) {
+            echo "<p style='color:red'>Erro ao verificar tabela: " . $e->getMessage() . "</p>";
+        }
+
+        // 2. Verificar Serviço
+            echo "<h2>2. Instanciação do Serviço</h2>";
+            try {
+                $service = new \App\Services\OcrService();
+                echo "<p style='color:green'>[OK] App\Services\OcrService instanciado com sucesso.</p>";
+            } catch (\Throwable $e) {
+                echo "<p style='color:red'>[ERRO] Falha ao instanciar OcrService: " . $e->getMessage() . "</p>";
+            }
+
+            // 3. Verificar Ambiente (Tesseract)
+            echo "<h2>3. Verificação do Ambiente (Tesseract OCR)</h2>";
+            $output = [];
+            $code = 0;
+            exec('tesseract --version 2>&1', $output, $code);
+            if ($code === 0) {
+                 echo "<p style='color:green'>[OK] Tesseract encontrado: <br>" . implode("<br>", array_slice($output, 0, 3)) . "</p>";
+            } else {
+                 echo "<p style='color:orange'>[AVISO] Tesseract NÃO encontrado no PATH (Código: $code). <br>O sistema usará o modo 'Mock' (Simulação) para testes.</p>";
+                 echo "<p><em>Para produção: Instale o Tesseract OCR e adicione ao PATH do sistema.</em></p>";
+                 echo "<pre>" . htmlspecialchars(implode("\n", $output)) . "</pre>";
+            }
+
+            echo "<hr>";
+            echo "<p><a href='/test/ocr/setup'>Configurar Banco de Dados (Tabela OCR)</a></p>";
+        }
+
+    public function setupOcrTable(): void
+    {
+        if (!Auth::check()) {
+            echo "Acesso negado.";
+            return;
+        }
+
+        $sql = "
+        CREATE TABLE IF NOT EXISTS documentos_ocr (
+            id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+            documento_id BIGINT UNSIGNED NOT NULL,
+            documento_arquivo_id BIGINT UNSIGNED NOT NULL,
+            idioma VARCHAR(5) NOT NULL,
+            texto_extraido LONGTEXT NOT NULL,
+            paginas_processadas INT UNSIGNED NOT NULL,
+            engine VARCHAR(50) NOT NULL DEFAULT 'tesseract',
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_docs_ocr_documento FOREIGN KEY (documento_id) REFERENCES documentos(id),
+            CONSTRAINT fk_docs_ocr_arquivo FOREIGN KEY (documento_arquivo_id) REFERENCES documentos_arquivos(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ";
+
+        $sqlIndex = "
+        CREATE FULLTEXT INDEX idx_docs_ocr_texto ON documentos_ocr (texto_extraido);
+        CREATE INDEX idx_docs_ocr_documento ON documentos_ocr (documento_id);
+        CREATE INDEX idx_docs_ocr_arquivo ON documentos_ocr (documento_arquivo_id);
+        ";
+
+        $db = Database::connection();
+        try {
+            $db->exec($sql);
+            echo "<p style='color:green'>Tabela 'documentos_ocr' criada/verificada com sucesso.</p>";
+            
+            try {
+                $db->exec($sqlIndex);
+                echo "<p style='color:green'>Índices criados com sucesso.</p>";
+            } catch (\Exception $e) {
+                // Indices might already exist
+                echo "<p style='color:orange'>Aviso ao criar índices (podem já existir): " . $e->getMessage() . "</p>";
+            }
+
+        } catch (\Exception $e) {
+            echo "<p style='color:red'>Erro ao criar tabela: " . $e->getMessage() . "</p>";
+        }
+        
+        echo "<p><a href='/test/ocr'>Voltar para Teste OCR</a></p>";
+    }
+
     public function corrupt(): void
     {
         if (!Auth::check()) {

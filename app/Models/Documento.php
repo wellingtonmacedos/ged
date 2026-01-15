@@ -18,15 +18,40 @@ class Documento extends Model
         return $stmt->fetchAll();
     }
 
-    public function search(?string $titulo, ?string $status, ?int $departamentoId, ?string $inicio, ?string $fim, array $metadados = [], int $limit = 20, int $offset = 0): array
+    public function searchInFolder(int $pastaId, string $termo): array
+    {
+        // Busca por título ou conteúdo OCR (se existir) dentro da pasta
+        $sql = 'SELECT DISTINCT d.* FROM documentos d 
+                LEFT JOIN documentos_ocr ocr ON ocr.documento_id = d.id 
+                WHERE d.pasta_id = :pasta_id 
+                AND (d.titulo LIKE :termo OR ocr.texto_extraido LIKE :termo) 
+                ORDER BY d.created_at DESC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':pasta_id', $pastaId, PDO::PARAM_INT);
+        $stmt->bindValue(':termo', '%' . $termo . '%');
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function search(?string $titulo, ?string $status, ?int $departamentoId, ?int $pastaId, ?string $inicio, ?string $fim, ?int $ano, ?string $mes, array $metadados = [], int $limit = 20, int $offset = 0, bool $usarOcr = false): array
     {
         $sql = 'SELECT DISTINCT d.* FROM documentos d INNER JOIN pastas p ON p.id = d.pasta_id';
         $params = [];
         $where = ['1=1'];
 
+        if ($usarOcr) {
+            $sql .= ' LEFT JOIN documentos_ocr ocr ON ocr.documento_id = d.id';
+        }
+
         if ($titulo !== null && $titulo !== '') {
-            $where[] = 'd.titulo LIKE :titulo';
-            $params[':titulo'] = '%' . $titulo . '%';
+            if ($usarOcr) {
+                $where[] = '(d.titulo LIKE :titulo OR ocr.texto_extraido LIKE :ocr_texto)';
+                $params[':titulo'] = '%' . $titulo . '%';
+                $params[':ocr_texto'] = '%' . $titulo . '%';
+            } else {
+                $where[] = 'd.titulo LIKE :titulo';
+                $params[':titulo'] = '%' . $titulo . '%';
+            }
         }
 
         if ($status !== null && $status !== '') {
@@ -39,6 +64,11 @@ class Documento extends Model
             $params[':departamento_id'] = $departamentoId;
         }
 
+        if ($pastaId !== null) {
+            $where[] = 'd.pasta_id = :pasta_id';
+            $params[':pasta_id'] = $pastaId;
+        }
+
         if ($inicio !== null && $inicio !== '') {
             $where[] = 'd.created_at >= :inicio';
             $params[':inicio'] = $inicio;
@@ -47,6 +77,16 @@ class Documento extends Model
         if ($fim !== null && $fim !== '') {
             $where[] = 'd.created_at <= :fim';
             $params[':fim'] = $fim;
+        }
+
+        if ($ano !== null) {
+            $where[] = 'YEAR(d.created_at) = :ano';
+            $params[':ano'] = $ano;
+        }
+
+        if ($mes !== null && $mes !== '') {
+            $where[] = 'DATE_FORMAT(d.created_at, "%m") = :mes';
+            $params[':mes'] = $mes;
         }
 
         // Filtro de metadados (AND para cada par chave/valor)
@@ -80,4 +120,3 @@ class Documento extends Model
     }
 
 }
-

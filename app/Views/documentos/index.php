@@ -58,11 +58,13 @@ if ($pasta) {
         <?php endif; ?>
     </div>
 
-    <!-- Global Actions -->
     <div class="d-flex align-items-center gap-3">
         <a href="/documentos/busca" class="text-muted text-decoration-none" title="Buscar">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="theme-toggle-docs" title="Alternar tema">
+            Tema
+        </button>
         <a href="/assinaturas/painel" class="text-muted text-decoration-none" title="Assinaturas">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
         </a>
@@ -116,6 +118,21 @@ if ($pasta) {
                     <h1 class="h5 mb-0 fw-bold">Início</h1>
                 <?php endif; ?>
             </div>
+            
+            <!-- Search in Folder -->
+            <?php if ($pasta): ?>
+            <div class="flex-grow-1 mx-4">
+                <form action="/documentos" method="get" class="d-flex">
+                    <input type="hidden" name="pasta_id" value="<?php echo $pasta['id']; ?>">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </span>
+                        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="Pesquisar nesta pasta..." value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q'], ENT_QUOTES, 'UTF-8') : ''; ?>">
+                    </div>
+                </form>
+            </div>
+            <?php endif; ?>
 
             <div class="d-flex gap-2">
                 <?php if ($pasta): ?>
@@ -565,6 +582,8 @@ function toggleUploadForm() {
 document.addEventListener('DOMContentLoaded', function () {
     const treeContainer = document.getElementById('tree-pastas');
     const currentPastaId = <?php echo $pasta ? $pasta['id'] : 'null'; ?>;
+    const currentDeptId = <?php echo $pasta && isset($pasta['departamento_id']) ? $pasta['departamento_id'] : 'null'; ?>;
+    const expandedIds = <?php echo json_encode(isset($breadcrumb) ? array_column($breadcrumb, 'id') : []); ?>;
 
     // Load Folders for a parent (folder or department context)
     function loadFolders(container, parentId, deptId) {
@@ -578,8 +597,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return fetch(url)
             .then(response => response.json())
             .then(data => {
+                // Remove placeholder loader if exists
+                if (container.innerHTML.includes('Carregando') || container.innerHTML.includes('...')) {
+                    container.innerHTML = '';
+                }
+
                 if (data.length === 0) {
-                    container.innerHTML = '<div class="text-muted small p-2 ms-3">Vazio</div>';
+                    if (!parentId && deptId) {
+                        container.innerHTML = '<div class="text-muted small p-2 ms-3">Vazio</div>';
+                    } else if (parentId) {
+                         const placeholder = document.createElement('div');
+                         placeholder.classList.add('text-muted', 'small', 'ms-4', 'fst-italic');
+                         placeholder.textContent = '(vazio)';
+                         container.appendChild(placeholder);
+                    }
                     return;
                 }
 
@@ -587,23 +618,79 @@ document.addEventListener('DOMContentLoaded', function () {
                     const itemContainer = document.createElement('div');
                     itemContainer.classList.add('folder-tree-item');
                     
+                    const header = document.createElement('div');
+                    header.classList.add('d-flex', 'align-items-center', 'py-1');
+                    
+                    // Toggle Button
+                    const toggleBtn = document.createElement('span');
+                    toggleBtn.classList.add('folder-toggle', 'text-muted', 'me-1', 'd-inline-flex', 'justify-content-center', 'align-items-center');
+                    toggleBtn.style.cursor = 'pointer';
+                    toggleBtn.style.width = '20px';
+                    toggleBtn.style.height = '20px';
+                    toggleBtn.style.userSelect = 'none';
+                    
+                    // Folder Link
                     const item = document.createElement('a');
                     item.href = '/documentos?pasta_id=' + pasta.id;
-                    item.classList.add('folder-item');
+                    item.classList.add('folder-item', 'text-truncate', 'text-decoration-none', 'text-dark', 'd-flex', 'align-items-center', 'flex-grow-1');
                     if (currentPastaId == pasta.id) {
-                        item.classList.add('active');
-                        // Expand parents if active (simple approach: just mark active)
+                        item.classList.add('fw-bold', 'text-primary');
                     }
                     
                     item.innerHTML = `
-                        <span class="icon">📁</span>
-                        <span class="text-truncate">${pasta.nome}</span>
+                        <span class="icon me-1">📁</span>
+                        <span class="text-truncate small">${pasta.nome}</span>
                     `;
                     
-                    itemContainer.appendChild(item);
-                    container.appendChild(itemContainer);
+                    // Subfolder Container
+                    const subContainer = document.createElement('div');
+                    subContainer.classList.add('folder-children', 'ms-3');
+                    subContainer.style.display = 'none';
                     
-                    // Note: If we supported nested folders in sidebar, we would add expand button here
+                    // Determine if should be expanded
+                    // Expand if in breadcrumb path OR if it's the current folder (to show its children? usually yes if it's a tree)
+                    // But here loadFolders renders children OF parent.
+                    // If pasta.id is in expandedIds, it means it's a parent of current folder or IS the current folder.
+                    // If it is the current folder, we might want to expand it to show subfolders too? 
+                    // Let's say yes.
+                    const shouldExpand = expandedIds.includes(pasta.id);
+
+                    if (shouldExpand) {
+                        subContainer.style.display = 'block';
+                        toggleBtn.innerHTML = '<small>▼</small>';
+                        // Load children
+                        loadFolders(subContainer, pasta.id, null);
+                    } else {
+                        toggleBtn.innerHTML = '<small>▶</small>';
+                    }
+                    
+                    // Toggle Logic
+                    toggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const isExpanded = subContainer.style.display === 'block';
+                        
+                        if (isExpanded) {
+                            subContainer.style.display = 'none';
+                            toggleBtn.innerHTML = '<small>▶</small>';
+                        } else {
+                            subContainer.style.display = 'block';
+                            toggleBtn.innerHTML = '<small>▼</small>'; 
+                            
+                            // Load children if empty
+                            if (subContainer.children.length === 0) {
+                                subContainer.innerHTML = '<div class="text-muted small ms-3">...</div>';
+                                loadFolders(subContainer, pasta.id, null);
+                            }
+                        }
+                    });
+
+                    header.appendChild(toggleBtn);
+                    header.appendChild(item);
+                    itemContainer.appendChild(header);
+                    itemContainer.appendChild(subContainer);
+                    container.appendChild(itemContainer);
                 });
             })
             .catch(err => {
@@ -660,6 +747,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             });
                         }
                     });
+
+                    // Auto-expand if current folder belongs to this department
+                    if (currentDeptId && dept.id == currentDeptId) {
+                         childrenContainer.style.display = 'block';
+                         // Only load if empty (it will be empty on init)
+                         if (childrenContainer.children.length === 0) {
+                             loadFolders(childrenContainer, null, dept.id);
+                         }
+                    }
 
                     deptContainer.appendChild(deptHeader);
                     deptContainer.appendChild(childrenContainer);

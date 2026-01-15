@@ -8,6 +8,7 @@ use App\Core\Database;
 use App\Models\Documento;
 use App\Models\DocumentoArquivo;
 use App\Models\DocumentoMetadata;
+use App\Models\DocumentoOcr;
 use PDO;
 
 class DocumentService
@@ -16,6 +17,8 @@ class DocumentService
     private DocumentoArquivo $arquivo;
     private DocumentoMetadata $metadata;
     private AuditService $audit;
+    private DocumentoOcr $documentoOcr;
+    private OcrService $ocrService;
 
     public function __construct()
     {
@@ -23,12 +26,18 @@ class DocumentService
         $this->arquivo = new DocumentoArquivo();
         $this->metadata = new DocumentoMetadata();
         $this->audit = new AuditService();
+        $this->documentoOcr = new DocumentoOcr();
+        $this->ocrService = new OcrService();
     }
 
     public function createDocument(int $pastaId, string $titulo, string $tipo, int $usuarioId, array $metadados, array $arquivoUpload): int
     {
         $pdo = Database::connection();
         $pdo->beginTransaction();
+
+        $documentoId = 0;
+        $arquivoId = 0;
+        $caminho = '';
 
         try {
             $documentoId = $this->documento->insert([
@@ -44,7 +53,7 @@ class DocumentService
             $caminho = $this->storeFile($documentoId, $versao, $arquivoUpload);
             $hash = hash_file('sha256', $caminho);
 
-            $this->arquivo->insert([
+            $arquivoId = $this->arquivo->insert([
                 'documento_id' => $documentoId,
                 'caminho_arquivo' => $caminho,
                 'versao' => $versao,
@@ -70,6 +79,10 @@ class DocumentService
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+
+        if ($documentoId > 0 && $arquivoId > 0 && $caminho !== '') {
+            $this->runOcrSafe($documentoId, $arquivoId, $caminho);
         }
     }
 
@@ -97,15 +110,16 @@ class DocumentService
 
         $pdo = Database::connection();
         $pdo->beginTransaction();
+        $arquivoId = 0;
+        $caminho = '';
+
 
         try {
             $atual = $this->arquivo->findAtual($documentoId);
             $versao = $atual ? ((int) $atual['versao'] + 1) : 1;
-            
             $caminho = $this->storeFileLogic($documentoId, $versao, $fileInfo, $isUploadedFile);
             $hash = hash_file('sha256', $caminho);
-
-            $this->arquivo->insert([
+            $arquivoId = $this->arquivo->insert([
                 'documento_id' => $documentoId,
                 'caminho_arquivo' => $caminho,
                 'versao' => $versao,
@@ -119,6 +133,10 @@ class DocumentService
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+
+        if ($arquivoId > 0 && $caminho !== '') {
+            $this->runOcrSafe($documentoId, $arquivoId, $caminho);
         }
     }
 
@@ -164,5 +182,96 @@ class DocumentService
             throw new \RuntimeException('Documentos assinados não podem ser modificados.');
         }
     }
-}
 
+    private function runOcrSafe(int $documentoId, int $arquivoId, string $caminho): void
+    {
+        if (!$this->shouldProcessOcr($caminho)) {
+            return;
+        }
+
+        $lang = Config::get('OCR_LANG', 'por+eng') ?? 'por+eng';
+        $maxPagesValue = Config::get('OCR_MAX_PAGES', '50');
+        $maxPages = (int) $maxPagesValue;
+
+        try {
+            $result = $this->ocrService->extractText($caminho, $lang);
+            $pages = $result['paginas'] ?? null;
+
+            if ($maxPages > 0 && $pages !== null && $pages > $maxPages) {
+                $payload = [
+                    'engine' => $result['engine'] ?? 'tesseract',
+                    'idioma' => $lang,
+                    'paginas' => $pages,
+                    'limite_paginas' => $maxPages,
+                ];
+                $this->audit->log('OCR_FALHA', 'documentos', $documentoId);
+                $this->audit->logOperacional(
+                    'OCR_FALHA',
+                    'documentos',
+                    $documentoId,
+                    json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+                return;
+            }
+
+            if (!empty($result['sucesso']) && !empty($result['texto'])) {
+                $this->documentoOcr->insert([
+                    'documento_id' => $documentoId,
+                    'documento_arquivo_id' => $arquivoId,
+                    'idioma' => $lang,
+                    'texto_extraido' => $result['texto'],
+                    'paginas_processadas' => $pages,
+                    'engine' => $result['engine'] ?? 'tesseract',
+                ]);
+
+                $payload = [
+                    'engine' => $result['engine'] ?? 'tesseract',
+                    'idioma' => $lang,
+                    'paginas' => $pages,
+                    'tempo_execucao' => $result['duracao'] ?? null,
+                ];
+
+                $this->audit->log('OCR_EXECUTADO', 'documentos', $documentoId);
+                $this->audit->logOperacional(
+                    'OCR_EXECUTADO',
+                    'documentos',
+                    $documentoId,
+                    json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            } else {
+                $payload = [
+                    'engine' => $result['engine'] ?? 'tesseract',
+                    'idioma' => $lang,
+                    'erro' => $result['erro'] ?? 'Falha desconhecida',
+                ];
+                $this->audit->log('OCR_FALHA', 'documentos', $documentoId);
+                $this->audit->logOperacional(
+                    'OCR_FALHA',
+                    'documentos',
+                    $documentoId,
+                    json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            }
+        } catch (\Throwable $e) {
+            $payload = [
+                'engine' => 'tesseract',
+                'idioma' => $lang,
+                'erro' => $e->getMessage(),
+            ];
+            $this->audit->log('OCR_FALHA', 'documentos', $documentoId);
+            $this->audit->logOperacional(
+                'OCR_FALHA',
+                'documentos',
+                $documentoId,
+                json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            );
+        }
+    }
+
+    private function shouldProcessOcr(string $caminho): bool
+    {
+        $ext = strtolower((string) pathinfo($caminho, PATHINFO_EXTENSION));
+        $supported = ['pdf', 'png', 'jpg', 'jpeg', 'tif', 'tiff', 'bmp'];
+        return in_array($ext, $supported, true);
+    }
+}

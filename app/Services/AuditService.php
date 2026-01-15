@@ -102,17 +102,32 @@ class AuditService
     public function getDocumentHistory(int $documentoId): array
     {
         $db = \App\Core\Database::connection();
-        
+
         // Logs gerais
-        $stmt = $db->prepare("
-            SELECT l.*, u.nome as usuario_nome 
-            FROM logs_auditoria l 
-            LEFT JOIN usuarios u ON l.usuario_id = u.id 
-            WHERE l.entidade = 'documentos' AND l.entidade_id = ?
-            ORDER BY l.created_at ASC
-        ");
-        $stmt->execute([$documentoId]);
-        $logs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $db->prepare("
+                SELECT l.*, u.nome as usuario_nome 
+                FROM logs_auditoria l 
+                LEFT JOIN usuarios u ON l.usuario_id = u.id 
+                WHERE l.entidade = 'documentos' AND l.entidade_id = ?
+                ORDER BY l.created_at ASC
+            ");
+            $stmt->execute([$documentoId]);
+            $logs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            if ($e->getCode() !== '42S02') {
+                throw $e;
+            }
+
+            $stmt = $db->prepare("
+                SELECT l.* 
+                FROM logs_auditoria l 
+                WHERE l.entidade = 'documentos' AND l.entidade_id = ?
+                ORDER BY l.created_at ASC
+            ");
+            $stmt->execute([$documentoId]);
+            $logs = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
 
         // Versões
         $stmtV = $db->prepare("
@@ -125,15 +140,32 @@ class AuditService
         $versoes = $stmtV->fetchAll(\PDO::FETCH_ASSOC);
 
         // Assinaturas
-        $stmtA = $db->prepare("
-            SELECT da.*, u.nome as usuario_nome 
-            FROM documentos_assinaturas da 
-            LEFT JOIN usuarios u ON da.usuario_id = u.id 
-            WHERE da.documento_id = ? 
-            ORDER BY da.created_at ASC
-        ");
-        $stmtA->execute([$documentoId]);
-        $assinaturas = $stmtA->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmtA = $db->prepare("
+                SELECT 
+                    a.id,
+                    a.documento_id,
+                    a.usuario_id,
+                    a.ordem,
+                    a.status,
+                    a.assinatura_imagem,
+                    a.ip,
+                    a.assinado_em AS created_at,
+                    NULL AS hash_assinatura,
+                    u.nome AS usuario_nome
+                FROM assinaturas a
+                LEFT JOIN users u ON a.usuario_id = u.id
+                WHERE a.documento_id = ?
+                ORDER BY a.assinado_em ASC
+            ");
+            $stmtA->execute([$documentoId]);
+            $assinaturas = $stmtA->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            if ($e->getCode() !== '42S02') {
+                throw $e;
+            }
+            $assinaturas = [];
+        }
 
         return [
             'logs' => $logs,

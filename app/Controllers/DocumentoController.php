@@ -22,6 +22,7 @@ class DocumentoController extends Controller
     private DocumentService $service;
     private PermissionService $permissao;
     private AuditService $audit;
+    private \App\Models\DocumentoOcr $documentoOcr;
 
     public function __construct()
     {
@@ -31,6 +32,7 @@ class DocumentoController extends Controller
         $this->service = new DocumentService();
         $this->permissao = new PermissionService();
         $this->audit = new AuditService();
+        $this->documentoOcr = new \App\Models\DocumentoOcr();
     }
 
     public function index(): void
@@ -70,7 +72,14 @@ class DocumentoController extends Controller
             return;
         }
 
-        $documentos = $this->documento->findByPasta($pastaId);
+        $termo = isset($_GET['q']) ? trim($_GET['q']) : '';
+        
+        if (!empty($termo)) {
+            $documentos = $this->documento->searchInFolder($pastaId, $termo);
+        } else {
+            $documentos = $this->documento->findByPasta($pastaId);
+        }
+        
         $breadcrumb = $this->pasta->getBreadcrumb($pastaId);
 
         $subpastas = [];
@@ -273,8 +282,15 @@ class DocumentoController extends Controller
         
         $this->audit->log('VISUALIZAR_DOCUMENTO', 'documentos', $documentoId);
 
+        $arquivoAtual = $this->arquivo->findAtual($documentoId);
+        $ocr = null;
+        if ($arquivoAtual) {
+            $ocr = $this->documentoOcr->findByDocumentoArquivo($documentoId, (int) $arquivoAtual['id']);
+        }
+
         $this->view('documentos/visualizar', [
-            'documento' => $documento
+            'documento' => $documento,
+            'ocr' => $ocr,
         ]);
     }
 
@@ -283,12 +299,17 @@ class DocumentoController extends Controller
         if (!Auth::check()) {
             $this->redirect('/login');
         }
+        $user = Auth::user();
 
         $termo = isset($_GET['q']) ? trim($_GET['q']) : null;
         $status = isset($_GET['status']) ? trim($_GET['status']) : null;
         $departamentoId = isset($_GET['departamento_id']) && $_GET['departamento_id'] !== '' ? (int) $_GET['departamento_id'] : null;
+        $pastaId = isset($_GET['pasta_id']) && $_GET['pasta_id'] !== '' ? (int) $_GET['pasta_id'] : null;
         $inicio = isset($_GET['data_inicio']) && $_GET['data_inicio'] !== '' ? $_GET['data_inicio'] : null;
         $fim = isset($_GET['data_fim']) && $_GET['data_fim'] !== '' ? $_GET['data_fim'] : null;
+        $ano = isset($_GET['ano']) && $_GET['ano'] !== '' ? (int) $_GET['ano'] : null;
+        $mes = isset($_GET['mes']) && $_GET['mes'] !== '' ? $_GET['mes'] : null;
+        $usarOcr = isset($_GET['ocr']) && $_GET['ocr'] === '1';
         
         // Paginação
         $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
@@ -302,21 +323,31 @@ class DocumentoController extends Controller
         }
 
         $resultados = null;
-        // Executa busca se houver algum filtro
-        if ($termo || $status || $departamentoId || $inicio || $fim || !empty($metadados)) {
-            $resultados = $this->documento->search($termo, $status, $departamentoId, $inicio, $fim, $metadados, $limit, $offset);
+        if ($termo || $status || $departamentoId || $pastaId || $inicio || $fim || $ano || $mes || !empty($metadados)) {
+            $resultados = $this->documento->search($termo, $status, $departamentoId, $pastaId, $inicio, $fim, $ano, $mes, $metadados, $limit, $offset, $usarOcr);
             $this->audit->log('BUSCA_DOCUMENTOS', 'sistema', null);
         }
 
         $depModel = new \App\Models\Departamento();
-        $departamentos = $depModel->findAll();
+        $departamentos = $depModel->all();
+
+        $pastaModel = new \App\Models\Pasta();
+        $departamentoPastas = $departamentoId;
+        if ($departamentoPastas === null && isset($user['departamento_id'])) {
+            $departamentoPastas = (int) $user['departamento_id'];
+        }
+        $pastas = [];
+        if ($departamentoPastas !== null) {
+            $pastas = $pastaModel->findByDepartamentoAndParent((int) $departamentoPastas, null);
+        }
 
         $this->view('documentos/busca', [
             'resultados' => $resultados,
             'filtros' => $_GET,
             'departamentos' => $departamentos,
             'page' => $page,
-            'hasMore' => $resultados && count($resultados) === $limit
+            'hasMore' => $resultados && count($resultados) === $limit,
+            'pastas' => $pastas
         ]);
     }
 

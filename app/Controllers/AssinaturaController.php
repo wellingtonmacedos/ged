@@ -40,11 +40,7 @@ class AssinaturaController extends Controller
 
         $user = Auth::user();
 
-        $sql = 'SELECT a.*, d.titulo FROM assinaturas a INNER JOIN documentos d ON d.id = a.documento_id WHERE a.usuario_id = :usuario_id AND a.status = "PENDENTE" ORDER BY a.ordem ASC';
-        $stmt = $this->assinatura->db->prepare($sql);
-        $stmt->bindValue(':usuario_id', $user['id']);
-        $stmt->execute();
-        $pendentes = $stmt->fetchAll();
+        $pendentes = $this->assinatura->pendentesPorUsuario((int) $user['id']);
 
         $this->view('assinaturas/painel', [
             'user' => $user,

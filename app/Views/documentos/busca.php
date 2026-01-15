@@ -4,8 +4,17 @@
     <div class="card-body">
         <form method="get" action="/documentos/busca" class="row g-3">
             <div class="col-md-4">
-                <label class="form-label">Termo (Título)</label>
+                <label class="form-label">Termo</label>
                 <input type="text" name="q" class="form-control" value="<?php echo htmlspecialchars($filtros['q'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" name="ocr" id="ocr" value="1" <?php echo !empty($filtros['ocr']) && $filtros['ocr'] === '1' ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="ocr">
+                        Pesquisar dentro do documento (OCR)
+                    </label>
+                    <div class="form-text">
+                        Inclui conteúdo extraído de PDFs digitalizados.
+                    </div>
+                </div>
             </div>
             
             <div class="col-md-3">
@@ -13,7 +22,7 @@
                 <select name="departamento_id" class="form-select">
                     <option value="">Todos</option>
                     <?php foreach ($departamentos as $dep): ?>
-                        <option value="<?php echo $dep['id']; ?>" <?php echo ($filtros['departamento_id'] == $dep['id']) ? 'selected' : ''; ?>>
+                        <option value="<?php echo $dep['id']; ?>" <?php echo (!empty($filtros['departamento_id']) && (int) $filtros['departamento_id'] === (int) $dep['id']) ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($dep['nome'], ENT_QUOTES, 'UTF-8'); ?>
                         </option>
                     <?php endforeach; ?>
@@ -24,9 +33,9 @@
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">Todos</option>
-                    <option value="EM_EDICAO" <?php echo ($filtros['status'] === 'EM_EDICAO') ? 'selected' : ''; ?>>Em Edição</option>
-                    <option value="PENDENTE_ASSINATURA" <?php echo ($filtros['status'] === 'PENDENTE_ASSINATURA') ? 'selected' : ''; ?>>Pendente</option>
-                    <option value="ASSINADO" <?php echo ($filtros['status'] === 'ASSINADO') ? 'selected' : ''; ?>>Assinado</option>
+                    <option value="EM_EDICAO" <?php echo (!empty($filtros['status']) && $filtros['status'] === 'EM_EDICAO') ? 'selected' : ''; ?>>Em Edição</option>
+                    <option value="PENDENTE_ASSINATURA" <?php echo (!empty($filtros['status']) && $filtros['status'] === 'PENDENTE_ASSINATURA') ? 'selected' : ''; ?>>Pendente</option>
+                    <option value="ASSINADO" <?php echo (!empty($filtros['status']) && $filtros['status'] === 'ASSINADO') ? 'selected' : ''; ?>>Assinado</option>
                 </select>
             </div>
 
@@ -37,6 +46,53 @@
                     <span class="input-group-text">até</span>
                     <input type="date" name="data_fim" class="form-control" value="<?php echo $filtros['data_fim'] ?? ''; ?>">
                 </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Pasta</label>
+                <select name="pasta_id" class="form-select">
+                    <option value="">Todas</option>
+                    <?php if (!empty($pastas)): ?>
+                        <?php foreach ($pastas as $pasta): ?>
+                            <option value="<?php echo $pasta['id']; ?>" <?php echo (!empty($filtros['pasta_id']) && (int) $filtros['pasta_id'] === (int) $pasta['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($pasta['nome'], ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Ano</label>
+                <input type="number" name="ano" class="form-control" min="1900" max="2100" value="<?php echo isset($filtros['ano']) ? htmlspecialchars($filtros['ano'], ENT_QUOTES, 'UTF-8') : ''; ?>">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label">Mês</label>
+                <select name="mes" class="form-select">
+                    <option value="">Todos</option>
+                    <?php
+                    $nomesMeses = [
+                        '01' => 'Janeiro',
+                        '02' => 'Fevereiro',
+                        '03' => 'Março',
+                        '04' => 'Abril',
+                        '05' => 'Maio',
+                        '06' => 'Junho',
+                        '07' => 'Julho',
+                        '08' => 'Agosto',
+                        '09' => 'Setembro',
+                        '10' => 'Outubro',
+                        '11' => 'Novembro',
+                        '12' => 'Dezembro',
+                    ];
+                    ?>
+                    <?php foreach ($nomesMeses as $value => $label): ?>
+                        <option value="<?php echo $value; ?>" <?php echo (!empty($filtros['mes']) && $filtros['mes'] === $value) ? 'selected' : ''; ?>>
+                            <?php echo $label; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="col-md-12">

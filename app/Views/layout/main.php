@@ -11,8 +11,7 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/zorin.css" rel="stylesheet">
 </head>
-<body class="<?php echo isset($fullScreen) && $fullScreen ? 'zorin-mode' : 'bg-light'; ?>">
-
+<body class="<?php echo isset($fullScreen) && $fullScreen ? 'zorin-mode theme-light' : 'bg-light theme-light'; ?>">
 <?php if (isset($fullScreen) && $fullScreen): ?>
     <!-- Full Screen App Layout (Handled by View) -->
     <?php echo $content; ?>
@@ -45,6 +44,9 @@ use App\Core\Auth;
                     <li class="nav-item">
                         <a class="nav-link" href="/documentos/busca">Busca Avançada</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="theme-toggle-main">Tema</a>
+                    </li>
                     <li class="nav-item ms-3">
                         <a class="nav-link text-danger" href="/logout">Sair</a>
                     </li>
@@ -64,5 +66,68 @@ use App\Core\Auth;
 </div>
 <?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    function setTheme(theme) {
+        var body = document.body;
+        if (!body) return;
+        body.classList.remove('theme-light', 'theme-dark');
+        if (theme === 'dark') {
+            body.classList.add('theme-dark');
+        } else {
+            body.classList.add('theme-light');
+        }
+        try {
+            localStorage.setItem('gedTheme', theme === 'dark' ? 'dark' : 'light');
+        } catch (e) {
+        }
+    }
+
+    function detectInitialTheme() {
+        var stored = null;
+        try {
+            stored = localStorage.getItem('gedTheme');
+        } catch (e) {
+        }
+        if (stored === 'dark' || stored === 'light') {
+            return stored;
+        }
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+    }
+
+    function toggleTheme() {
+        var body = document.body;
+        if (!body) return;
+        var isDark = body.classList.contains('theme-dark');
+        setTheme(isDark ? 'light' : 'dark');
+    }
+
+    window.gedTheme = {
+        set: setTheme,
+        toggle: toggleTheme
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setTheme(detectInitialTheme());
+        var mainToggle = document.getElementById('theme-toggle-main');
+        if (mainToggle) {
+            mainToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggleTheme();
+            });
+        }
+        var docsToggle = document.getElementById('theme-toggle-docs');
+        if (docsToggle) {
+            docsToggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggleTheme();
+            });
+        }
+    });
+})();
+</script>
 </body>
 </html>
