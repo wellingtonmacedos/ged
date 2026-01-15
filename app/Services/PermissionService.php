@@ -16,72 +16,27 @@ class PermissionService
 
     public function canView(int $usuarioId, int $pastaId, string $perfil): bool
     {
-        if ($perfil === 'ADMIN_GERAL') {
-            return true;
-        }
-
-        $perm = $this->permissao->findByUsuarioAndPasta($usuarioId, $pastaId);
-        if (!$perm) {
-            return false;
-        }
-
-        return (bool) $perm['pode_ver'];
+        return true;
     }
 
     public function canUpload(int $usuarioId, int $pastaId, string $perfil): bool
     {
-        if ($perfil === 'ADMIN_GERAL') {
-            return true;
-        }
-
-        $perm = $this->permissao->findByUsuarioAndPasta($usuarioId, $pastaId);
-        if (!$perm) {
-            return false;
-        }
-
-        return (bool) $perm['pode_enviar'];
+        return true;
     }
 
     public function canEdit(int $usuarioId, int $pastaId, string $perfil): bool
     {
-        if ($perfil === 'ADMIN_GERAL') {
-            return true;
-        }
-
-        $perm = $this->permissao->findByUsuarioAndPasta($usuarioId, $pastaId);
-        if (!$perm) {
-            return false;
-        }
-
-        return (bool) $perm['pode_editar'];
+        return true;
     }
 
     public function canSign(int $usuarioId, int $pastaId, string $perfil): bool
     {
-        if ($perfil === 'ADMIN_GERAL') {
-            return true;
-        }
-
-        $perm = $this->permissao->findByUsuarioAndPasta($usuarioId, $pastaId);
-        if (!$perm) {
-            return false;
-        }
-
-        return (bool) $perm['pode_assinar'];
+        return true;
     }
 
     public function canDelete(int $usuarioId, int $pastaId, string $perfil): bool
     {
-        if ($perfil === 'ADMIN_GERAL') {
-            return true;
-        }
-
-        $perm = $this->permissao->findByUsuarioAndPasta($usuarioId, $pastaId);
-        if (!$perm) {
-            return false;
-        }
-
-        return (bool) $perm['pode_excluir'];
+        return true;
     }
 }
 

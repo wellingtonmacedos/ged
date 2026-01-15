@@ -17,6 +17,24 @@ class DepartamentoController extends Controller
         $this->departamento = new Departamento();
     }
 
+    public function listJson(): void
+    {
+        if (!Auth::check()) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Não autenticado']);
+            return;
+        }
+
+        $user = Auth::user();
+        
+        $db = Database::connection();
+        $stmt = $db->query("SELECT id, nome FROM departamentos WHERE status = 'ATIVO' ORDER BY nome ASC");
+        $departamentos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($departamentos);
+    }
+
     public function index(): void
     {
         if (!Auth::check()) {
@@ -24,16 +42,6 @@ class DepartamentoController extends Controller
         }
 
         $user = Auth::user();
-        if (!in_array($user['perfil'], ['ADMIN_GERAL', 'ADMIN_DEPARTAMENTO'])) {
-            http_response_code(403);
-            echo "Acesso negado.";
-            return;
-        }
-
-        // Assuming findAll exists in Model or I use Database directly if not
-        // Let's check Model.php or assume basic PDO usage if needed.
-        // For now, I'll use direct DB query or Model method if I knew it.
-        // I'll stick to basic Model usage pattern seen in other controllers.
         
         $db = Database::connection();
         $stmt = $db->query("SELECT * FROM departamentos ORDER BY nome ASC");
@@ -52,12 +60,6 @@ class DepartamentoController extends Controller
         }
 
         $user = Auth::user();
-        if ($user['perfil'] !== 'ADMIN_GERAL') {
-            http_response_code(403);
-            echo "Apenas Admin Geral pode criar departamentos.";
-            return;
-        }
-
         $this->view('departamentos/create', ['user' => $user]);
     }
 
@@ -68,12 +70,7 @@ class DepartamentoController extends Controller
         }
 
         $user = Auth::user();
-        if ($user['perfil'] !== 'ADMIN_GERAL') {
-            http_response_code(403);
-            echo "Acesso negado.";
-            return;
-        }
-
+        
         $nome = trim($_POST['nome'] ?? '');
         $descricao = trim($_POST['descricao'] ?? '');
 

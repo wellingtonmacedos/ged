@@ -221,13 +221,23 @@ class TestController extends Controller
             echo "<p style='color:orange'>Aviso ao criar tabelas: " . $e->getMessage() . "</p>";
         }
 
-        // Create Default Departamento
-        $stmt = $db->query("SELECT id FROM departamentos WHERE nome = 'Geral' LIMIT 1");
-        $deptId = $stmt->fetchColumn();
-        if (!$deptId) {
-            $db->exec("INSERT INTO departamentos (nome) VALUES ('Geral')");
-            $deptId = $db->lastInsertId();
+        // Create Default Departments
+        $depts = ['Geral', 'Financeiro', 'Administrativo'];
+        $deptIds = [];
+
+        foreach ($depts as $deptName) {
+            $stmt = $db->query("SELECT id FROM departamentos WHERE nome = '$deptName' LIMIT 1");
+            $dId = $stmt->fetchColumn();
+            if (!$dId) {
+                $stmt = $db->prepare("INSERT INTO departamentos (nome) VALUES (:nome)");
+                $stmt->execute([':nome' => $deptName]);
+                $dId = $db->lastInsertId();
+                echo "<p>Departamento criado: $deptName (ID: $dId)</p>";
+            }
+            $deptIds[$deptName] = $dId;
         }
+        
+        $deptId = $deptIds['Geral']; // Default for user
 
         // Ensure users table has departamento_id
         try {
@@ -253,50 +263,55 @@ class TestController extends Controller
             $hasTenant = count($cols) > 0;
             
             if ($hasTenant) {
-                $stmt = $db->prepare("INSERT INTO users (nome, email, senha_hash, perfil, status, tenant_id, departamento_id) VALUES ('Usuário Comum', :email, :hash, 'USUARIO', 'ATIVO', 1, :deptId)");
+                $stmt = $db->prepare("INSERT INTO users (nome, email, senha_hash, perfil, status, tenant_id, departamento_id) VALUES ('Usuário Comum', :email, :hash, 'ADMIN_GERAL', 'ATIVO', 1, :deptId)");
             } else {
-                $stmt = $db->prepare("INSERT INTO users (nome, email, senha_hash, perfil, status, departamento_id) VALUES ('Usuário Comum', :email, :hash, 'USUARIO', 'ATIVO', :deptId)");
+                $stmt = $db->prepare("INSERT INTO users (nome, email, senha_hash, perfil, status, departamento_id) VALUES ('Usuário Comum', :email, :hash, 'ADMIN_GERAL', 'ATIVO', :deptId)");
             }
             
             $stmt->execute([':email' => $email, ':hash' => $passHash, ':deptId' => $deptId]);
             $userId = $db->lastInsertId();
             echo "<p style='color:green'>Usuário criado: $email / password (Depto ID: $deptId)</p>";
         } else {
-            // Update existing user to ensure correct department
-            $db->prepare("UPDATE users SET departamento_id = ? WHERE id = ?")->execute([$deptId, $userId]);
-            echo "<p style='color:blue'>Usuário já existe: $email. Departamento atualizado para ID: $deptId</p>";
+            // Update existing user to ensure correct department and ADMIN_GERAL to see everything
+            $db->prepare("UPDATE users SET departamento_id = ?, perfil = 'ADMIN_GERAL' WHERE id = ?")->execute([$deptId, $userId]);
+            echo "<p style='color:blue'>Usuário já existe: $email. Atualizado para ADMIN_GERAL e Depto ID: $deptId</p>";
         }
 
-        // 2. Create Folders
-        $folders = [
+        // 2. Create Folders for EACH Department
+        $foldersTemplate = [
             'Pasta Pública' => ['view' => 1, 'upload' => 1],
             'Pasta Restrita' => ['view' => 0, 'upload' => 0]
         ];
 
-        foreach ($folders as $name => $perms) {
-            $stmt = $db->prepare("SELECT id FROM pastas WHERE nome = :nome LIMIT 1");
-            $stmt->execute([':nome' => $name]);
-            $pastaId = $stmt->fetchColumn();
+        foreach ($deptIds as $dName => $dId) {
+            foreach ($foldersTemplate as $name => $perms) {
+                // Check if exists for this department
+                $stmt = $db->prepare("SELECT id FROM pastas WHERE nome = :nome AND departamento_id = :deptId AND parent_id IS NULL LIMIT 1");
+                $stmt->execute([':nome' => $name, ':deptId' => $dId]);
+                $pastaId = $stmt->fetchColumn();
 
-            if (!$pastaId) {
-                $stmt = $db->prepare("INSERT INTO pastas (nome, departamento_id) VALUES (:nome, :deptId)");
-                $stmt->execute([':nome' => $name, ':deptId' => $deptId]);
-                $pastaId = $db->lastInsertId();
-                echo "<p>Pasta criada: $name (ID: $pastaId)</p>";
-            } else {
-                echo "<p>Pasta já existe: $name (ID: $pastaId)</p>";
-            }
+                if (!$pastaId) {
+                    $stmt = $db->prepare("INSERT INTO pastas (nome, departamento_id, parent_id) VALUES (:nome, :deptId, NULL)");
+                    $stmt->execute([':nome' => $name, ':deptId' => $dId]);
+                    $pastaId = $db->lastInsertId();
+                    echo "<p>Pasta criada: $name em $dName (ID: $pastaId)</p>";
+                } else {
+                    echo "<p>Pasta já existe: $name em $dName (ID: $pastaId)</p>";
+                }
 
-            // 3. Set Permissions
-            // First delete existing to be sure
-            $db->prepare("DELETE FROM permissoes WHERE usuario_id = ? AND pasta_id = ?")->execute([$userId, $pastaId]);
-            
-            if ($perms['view']) {
-                $stmt = $db->prepare("INSERT INTO permissoes (usuario_id, pasta_id, pode_ver, pode_enviar, pode_editar, pode_assinar, pode_excluir) VALUES (?, ?, ?, ?, 0, 0, 0)");
-                $stmt->execute([$userId, $pastaId, 1, $perms['upload']]);
-                echo "<p>Permissões definidas para <b>$name</b>: Ver=SIM, Upload=" . ($perms['upload'] ? 'SIM' : 'NÃO') . "</p>";
-            } else {
-                echo "<p>Permissões definidas para <b>$name</b>: Acesso Bloqueado (Ver=NÃO)</p>";
+                // 3. Set Permissions (Only for the user created above)
+                // Delete existing to be sure
+                // Note: This overrides permissions, but for dev/test it's fine.
+                // We only set permissions if it's the user's department OR if we want them to see it.
+                // Since we made the user ADMIN_GERAL, they should see everything anyway if the check respects it.
+                // But let's add explicit permissions for safety.
+                
+                $db->prepare("DELETE FROM permissoes WHERE usuario_id = ? AND pasta_id = ?")->execute([$userId, $pastaId]);
+                
+                if ($perms['view']) {
+                    $stmt = $db->prepare("INSERT INTO permissoes (usuario_id, pasta_id, pode_ver, pode_enviar, pode_editar, pode_assinar, pode_excluir) VALUES (?, ?, ?, ?, 0, 0, 0)");
+                    $stmt->execute([$userId, $pastaId, 1, $perms['upload']]);
+                }
             }
         }
         

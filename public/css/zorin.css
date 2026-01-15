@@ -1,0 +1,397 @@
+:root {
+    /* Colors - Institutional & UI */
+    --color-primary: #0d6efd;
+    --color-primary-soft: #e7f1ff;
+    --color-bg: #f8f9fa;
+    --color-surface: #ffffff;
+    --color-border: #dee2e6;
+    --color-text-main: #212529;
+    --color-text-muted: #6c757d;
+    
+    /* Layout */
+    --topbar-height: 56px;
+    --sidebar-width: 260px;
+}
+
+body.zorin-mode {
+    background-color: var(--color-bg);
+    overflow: hidden; /* App-like feel */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Fixed Topbar override */
+.zorin-topbar {
+    height: var(--topbar-height);
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    z-index: 1000;
+}
+
+.zorin-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    height: calc(100vh - var(--topbar-height));
+}
+
+/* Sidebar */
+.zorin-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--color-bg);
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.folder-tree {
+    padding: 0.5rem;
+}
+
+.folder-item {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--color-text-main);
+    text-decoration: none;
+    transition: background-color 0.1s;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+}
+
+.folder-item:hover {
+    background-color: #e9ecef;
+}
+
+.folder-item.active {
+    background-color: #e0e0e0; /* Neutral active state like GNOME */
+    font-weight: 600;
+}
+
+.folder-item .icon {
+    margin-right: 0.5rem;
+    color: var(--color-text-muted);
+}
+
+.folder-item.active .icon {
+    color: var(--color-text-main);
+}
+
+/* Main Content Area */
+.zorin-main {
+    flex: 1;
+    background-color: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.zorin-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-surface);
+}
+
+.zorin-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* File Table */
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    background-color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.file-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.file-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.file-table tr.selected {
+    background-color: var(--color-primary-soft);
+}
+
+/* Icons & Badges */
+.file-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.icon-pdf { background-color: #dc3545; }
+.icon-doc { background-color: #0d6efd; }
+.icon-xls { background-color: #198754; }
+.icon-img { background-color: #fd7e14; }
+.icon-default { background-color: #6c757d; }
+
+.status-badge {
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.status-em_edicao { background-color: #e9ecef; color: #495057; }
+.status-pendente { background-color: #fff3cd; color: #856404; }
+.status-assinado { background-color: #d1e7dd; color: #0f5132; }
+
+/* Batch Actions Bar */
+.batch-actions {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #343a40;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.batch-actions.visible {
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Breadcrumbs in Topbar */
+.app-breadcrumb {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+.app-breadcrumb .separator { margin: 0 0.5rem; }
+.app-breadcrumb a { color: inherit; text-decoration: none; }
+.app-breadcrumb a:hover { color: var(--color-primary); }
+.app-breadcrumb .current { color: var(--color-text-main); font-weight: 500; }
+
+/* Folder view modes (main content area) */
+.folder-view-toolbar button {
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+.folder-view-toolbar .active {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.folder-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.folder-grid .folder-card {
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    background-color: #fff;
+    padding: 0.9rem;
+    text-align: center;
+    transition: box-shadow 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+}
+
+.folder-grid .folder-card:hover {
+    border-color: #cfd4da;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    transform: translateY(-1px);
+}
+
+.folder-grid .folder-icon {
+    font-size: 2.1rem;
+    margin-bottom: 0.35rem;
+}
+
+.folder-grid .folder-name {
+    font-size: 0.85rem;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Compact grid */
+.folder-view-compact .folder-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+}
+
+.folder-view-compact .folder-grid .folder-card {
+    padding: 0.6rem;
+}
+
+.folder-view-compact .folder-grid .folder-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.2rem;
+}
+
+.folder-view-compact .folder-grid .folder-name {
+    font-size: 0.8rem;
+}
+
+/* List view */
+.folder-view-list .folder-grid {
+    grid-template-columns: 1fr;
+}
+
+.folder-view-list .folder-grid .folder-card {
+    padding: 0.55rem 0.9rem;
+    display: flex;
+    align-items: center;
+    text-align: left;
+}
+
+.folder-view-list .folder-grid .folder-icon {
+    font-size: 1.4rem;
+    margin: 0;
+    margin-right: 0.6rem;
+}
+
+.folder-view-list .folder-grid .folder-name {
+    font-size: 0.9rem;
+}
+
+.doc-view-toolbar button {
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+.doc-view-toolbar .active {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
+}
+
+.doc-view-wrapper {
+    margin-top: 0.5rem;
+}
+
+.doc-grid {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.doc-card {
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    background-color: #fff;
+    padding: 0.75rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: box-shadow 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+}
+
+.doc-card:hover {
+    border-color: #cfd4da;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    transform: translateY(-1px);
+}
+
+.doc-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.doc-card-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.doc-card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.doc-card-actions {
+    margin-top: 0.25rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+.doc-card-actions a {
+    font-size: 0.8rem;
+}
+
+.doc-view-grid .doc-grid {
+    display: grid;
+}
+
+.doc-view-grid .doc-view-table {
+    display: none;
+}
+
+.doc-view-compact .doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+}
+
+.doc-view-compact .doc-card {
+    padding: 0.5rem 0.7rem;
+}
+
+.doc-view-compact .doc-card-title {
+    font-size: 0.8rem;
+}
+
+.doc-view-list .doc-grid {
+    display: none;
+}
+
+.doc-view-list .doc-view-table {
+    display: block;
+}

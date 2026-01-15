@@ -84,6 +84,7 @@ class DocumentoController extends Controller
             'breadcrumb' => $breadcrumb,
             'documentos' => $documentos,
             'subpastas' => $subpastas,
+            'fullScreen' => true,
         ]);
     }
 

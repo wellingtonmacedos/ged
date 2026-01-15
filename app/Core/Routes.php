@@ -10,6 +10,7 @@ use App\Controllers\DocumentoController;
 use App\Controllers\AssinaturaController;
 use App\Controllers\SistemaController;
 use App\Controllers\DepartamentoController;
+use App\Controllers\UsuarioController;
 
 class Routes
 {
@@ -27,8 +28,12 @@ class Routes
         $router->post('/pastas/salvar', [PastaController::class, 'store']);
 
         $router->get('/departamentos', [DepartamentoController::class, 'index']);
+        $router->get('/departamentos/list-json', [DepartamentoController::class, 'listJson']);
         $router->get('/departamentos/novo', [DepartamentoController::class, 'create']);
         $router->post('/departamentos/salvar', [DepartamentoController::class, 'store']);
+
+        $router->get('/usuarios/novo', [UsuarioController::class, 'create']);
+        $router->post('/usuarios/salvar', [UsuarioController::class, 'store']);
 
         $router->get('/documentos', [DocumentoController::class, 'index']);
         $router->post('/documentos/upload', [DocumentoController::class, 'upload']);
