@@ -337,7 +337,8 @@ if ($pasta) {
                                                 <div class="btn-group">
                                                     <a href="/documentos/visualizar?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-link text-muted p-0 me-2" title="Visualizar">👁️</a>
                                                     <a href="/documentos/download?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-link text-muted p-0 me-2" title="Baixar">⬇️</a>
-                                                    <a href="/documentos/auditoria?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-link text-muted p-0" title="Auditoria">📋</a>
+                                                    <a href="/documentos/auditoria?id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-link text-muted p-0 me-2" title="Auditoria">📋</a>
+                                                    <a href="/assinaturas/configurar?documento_id=<?php echo $doc['id']; ?>" class="btn btn-sm btn-link text-muted p-0" title="Configurar assinaturas">✍️</a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -376,6 +377,7 @@ if ($pasta) {
                                     <a href="/documentos/visualizar?id=<?php echo $doc['id']; ?>">👁️</a>
                                     <a href="/documentos/download?id=<?php echo $doc['id']; ?>">⬇️</a>
                                     <a href="/documentos/auditoria?id=<?php echo $doc['id']; ?>">📋</a>
+                                    <a href="/assinaturas/configurar?documento_id=<?php echo $doc['id']; ?>">✍️</a>
                                 </div>
                             </div>
                         <?php endforeach; ?>

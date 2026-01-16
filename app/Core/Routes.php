@@ -46,6 +46,8 @@ class Routes
 
         $router->get('/assinaturas/painel', [AssinaturaController::class, 'painel']);
         $router->post('/assinaturas/assinar', [AssinaturaController::class, 'assinar']);
+        $router->get('/assinaturas/configurar', [AssinaturaController::class, 'configurar']);
+        $router->post('/assinaturas/configurar', [AssinaturaController::class, 'salvarConfiguracao']);
 
         $router->get('/sistema/auditoria/verificar', [SistemaController::class, 'verificarAuditoria']);
 $router->get('/sistema/auditoria/verificar/exportar', [SistemaController::class, 'verificarAuditoriaExportar']);

@@ -103,3 +103,19 @@ CREATE INDEX idx_documentos_created_at ON documentos (created_at);
 CREATE INDEX idx_docs_meta_chave_valor ON documentos_metadados (chave, valor(100));
 CREATE INDEX idx_logs_created_at ON logs_auditoria (created_at);
 
+CREATE TABLE documentos_ocr (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    documento_id BIGINT UNSIGNED NOT NULL,
+    documento_arquivo_id BIGINT UNSIGNED NOT NULL,
+    idioma VARCHAR(10) NOT NULL,
+    texto_extraido LONGTEXT NOT NULL,
+    paginas_processadas INT UNSIGNED NULL,
+    engine VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_doc_ocr_documento FOREIGN KEY (documento_id) REFERENCES documentos(id),
+    CONSTRAINT fk_doc_ocr_arquivo FOREIGN KEY (documento_arquivo_id) REFERENCES documentos_arquivos(id)
+);
+
+CREATE FULLTEXT INDEX idx_doc_ocr_texto ON documentos_ocr (texto_extraido);
+CREATE INDEX idx_doc_ocr_documento ON documentos_ocr (documento_id);
+CREATE INDEX idx_doc_ocr_arquivo ON documentos_ocr (documento_arquivo_id);

@@ -28,11 +28,7 @@ class SignatureService
     {
         // Verifica dependências
         if (!class_exists(Fpdi::class)) {
-            // Se não houver biblioteca, apenas seguimos sem assinatura visual (fallback silencioso ou log)
-            // Em produção, isso deveria ser um erro se a assinatura visual for obrigatória.
-            // Aqui, vamos apenas logar que não foi possível aplicar o visual.
-            error_log("TCPDF/FPDI não encontrados. Assinatura visual pulada para doc ID $documentoId.");
-            return;
+            throw new RuntimeException("Bibliotecas TCPDF/FPDI não encontradas. Execute 'composer install' na raiz do projeto para habilitar a assinatura visual.");
         }
 
         // 1. Busca arquivo atual

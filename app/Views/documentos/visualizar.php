@@ -4,6 +4,7 @@
         <p class="text-muted small mb-0">Versão: <?php echo (int) $documento['versao_atual']; ?> | Status: <?php echo htmlspecialchars($documento['status'], ENT_QUOTES, 'UTF-8'); ?></p>
     </div>
     <div>
+        <a href="/assinaturas/configurar?documento_id=<?php echo $documento['id']; ?>" class="btn btn-outline-secondary me-2">Configurar assinaturas</a>
         <a href="/documentos/download?id=<?php echo $documento['id']; ?>" class="btn btn-outline-primary me-2">Download</a>
         <a href="/documentos?pasta_id=<?php echo $documento['pasta_id']; ?>" class="btn btn-secondary">Voltar</a>
     </div>

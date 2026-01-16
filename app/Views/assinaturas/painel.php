@@ -4,6 +4,15 @@ use App\Core\Security;
 $token = Security::csrfToken();
 ?>
 <h1 class="h4 mb-3">Painel de assinaturas</h1>
+
+<?php if (!empty($missingLib)): ?>
+    <div class="alert alert-warning">
+        <strong>Atenção:</strong> As bibliotecas de geração de PDF (TCPDF/FPDI) não foram encontradas.<br>
+        A assinatura visual não será aplicada no documento.<br>
+        Por favor, solicite ao administrador para rodar <code>composer install</code> no servidor.
+    </div>
+<?php endif; ?>
+
 <?php if (empty($pendentes)): ?>
     <p>Não há documentos pendentes de assinatura.</p>
 <?php else: ?>
