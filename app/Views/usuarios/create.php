@@ -2,12 +2,10 @@
 use App\Core\Security;
 
 $token = Security::csrfToken();
-$title = 'Novo Usuário';
-ob_start();
 ?>
 
 <div class="mb-4">
-    <a href="/" class="text-decoration-none">&larr; Voltar</a>
+    <a href="/usuarios" class="text-decoration-none">&larr; Voltar para Lista</a>
 </div>
 
 <h1>Novo Usuário</h1>
@@ -69,8 +67,5 @@ ob_start();
     </div>
     </div>
 
-<?php
-$content = ob_get_clean();
-require __DIR__ . '/../layout/main.php';
-?>
+
 

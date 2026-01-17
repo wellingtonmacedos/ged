@@ -1,7 +1,4 @@
-<?php
-$title = 'Novo Departamento';
-ob_start();
-?>
+
 
 <div class="mb-4">
     <a href="/departamentos" class="text-decoration-none">&larr; Voltar para Lista</a>
@@ -29,7 +26,4 @@ ob_start();
     </div>
 </div>
 
-<?php
-$content = ob_get_clean();
-require __DIR__ . '/../layout/main.php';
-?>
+

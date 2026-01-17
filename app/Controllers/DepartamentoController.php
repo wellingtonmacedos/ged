@@ -60,7 +60,9 @@ class DepartamentoController extends Controller
         }
 
         $user = Auth::user();
-        $this->view('departamentos/create', ['user' => $user]);
+        $this->view('departamentos/create', [
+            'user' => $user
+        ]);
     }
 
     public function store(): void

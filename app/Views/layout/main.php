@@ -9,64 +9,104 @@ use App\Core\Auth;
     <title>GED Institucional</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="/css/zorin.css" rel="stylesheet">
 </head>
-<body class="<?php echo isset($fullScreen) && $fullScreen ? 'zorin-mode theme-light' : 'bg-light theme-light'; ?>">
+<body class="<?php echo isset($fullScreen) && $fullScreen ? 'zorin-mode theme-light' : (($_COOKIE['gedTheme'] ?? '') === 'light' ? 'theme-light' : 'theme-dark'); ?>">
+<script>
+(function() {
+    var stored = localStorage.getItem('gedTheme');
+    var body = document.body;
+    if (stored === 'light' && body.classList.contains('theme-dark')) {
+        body.classList.remove('theme-dark');
+        body.classList.add('theme-light');
+    } else if (stored === 'dark' && !body.classList.contains('theme-dark')) {
+        body.classList.add('theme-dark');
+        body.classList.remove('theme-light');
+    }
+})();
+</script>
 <?php if (isset($fullScreen) && $fullScreen): ?>
-    <!-- Full Screen App Layout (Handled by View) -->
     <?php echo $content; ?>
 <?php else: ?>
-    <!-- Standard Layout -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" role="navigation" aria-label="Navegação principal">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/" aria-label="Página inicial do GED Institucional">GED Institucional</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto" role="menubar">
-                <?php if (Auth::check()): ?>
-                    <?php $currentUser = Auth::user(); ?>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/" role="menuitem">Dashboard</a>
+    <?php $currentUser = Auth::check() ? Auth::user() : null; ?>
+    <div class="dashboard-shell">
+        <aside class="dashboard-sidebar" role="navigation" aria-label="Navegação principal">
+            <div class="sidebar-header">
+                <a href="/" class="sidebar-logo text-decoration-none">
+                    <span class="logo-mark">G</span>
+                    <span class="logo-text">GED Institucional</span>
+                </a>
+            </div>
+            <?php if ($currentUser): ?>
+                <div class="sidebar-user">
+                    <div class="sidebar-avatar">
+                        <span><?php echo strtoupper(substr($currentUser['nome'], 0, 1)); ?></span>
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name"><?php echo htmlspecialchars($currentUser['nome'], ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="sidebar-user-role text-muted small"><?php echo htmlspecialchars($currentUser['perfil'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                </div>
+                <ul class="sidebar-menu list-unstyled mt-3" role="menubar">
+                    <li>
+                        <a href="/" class="sidebar-link" role="menuitem">Dashboard</a>
                     </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/documentos" role="menuitem">Arquivos</a>
+                    <li>
+                        <a href="/documentos" class="sidebar-link" role="menuitem">Arquivos</a>
                     </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/relatorios" role="menuitem">Relatórios</a>
+                    <li>
+                        <a href="/assinaturas/painel" class="sidebar-link" role="menuitem">Assinaturas</a>
                     </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/departamentos" role="menuitem">Departamentos</a>
+                    <li>
+                        <a href="/relatorios" class="sidebar-link" role="menuitem">Relatórios</a>
                     </li>
-                    <?php if ($currentUser && isset($currentUser['perfil']) && $currentUser['perfil'] === 'ADMIN_GERAL'): ?>
-                        <li class="nav-item" role="none">
-                            <a class="nav-link" href="/usuarios/novo" role="menuitem">Usuários</a>
+                    <li>
+                        <a href="/documentos/busca" class="sidebar-link" role="menuitem">Busca</a>
+                    </li>
+                    <li>
+                        <a href="/departamentos" class="sidebar-link" role="menuitem">Departamentos</a>
+                    </li>
+                    <?php if (isset($currentUser['perfil']) && $currentUser['perfil'] === 'ADMIN_GERAL'): ?>
+                        <li class="mt-2 sidebar-section-label">Administração</li>
+                        <li>
+                            <a href="/usuarios" class="sidebar-link" role="menuitem">Usuários</a>
+                        </li>
+                        <li>
+                            <a href="/sistema/backups" class="sidebar-link" role="menuitem">Backups</a>
                         </li>
                     <?php endif; ?>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/assinaturas/painel" role="menuitem">Assinaturas</a>
+                </ul>
+                <div class="sidebar-footer">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="theme-toggle-main" type="button">Tema</button>
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Sair</a>
+                </div>
+            <?php else: ?>
+                <ul class="sidebar-menu list-unstyled mt-3" role="menubar">
+                    <li>
+                        <a href="/login" class="sidebar-link" role="menuitem">Entrar</a>
                     </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/documentos/busca" role="menuitem">Busca Avançada</a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="#" id="theme-toggle-main" role="menuitem" aria-label="Alternar tema claro e escuro">Tema</a>
-                    </li>
-                    <li class="nav-item ms-3" role="none">
-                        <a class="nav-link text-danger" href="/logout" role="menuitem">Sair</a>
-                    </li>
-                <?php else: ?>
-                    <li class="nav-item" role="none">
-                        <a class="nav-link" href="/login" role="menuitem">Entrar</a>
-                    </li>
+                </ul>
+            <?php endif; ?>
+        </aside>
+        <main class="dashboard-main <?php echo (isset($layoutMode) && $layoutMode === 'full') ? 'p-0 overflow-hidden d-flex flex-column' : ''; ?>" role="main">
+            <?php if (!isset($hideHeader) || !$hideHeader): ?>
+            <header class="dashboard-topbar d-flex justify-content-between align-items-center mb-4">
+                <div class="text-muted small">
+                    Painel
+                </div>
+                <div class="dashboard-topbar-search">
+                    <input type="text" class="form-control form-control-sm" placeholder="Buscar no sistema">
+                </div>
+            </header>
+            <?php endif; ?>
+            <div class="dashboard-content <?php echo (isset($layoutMode) && $layoutMode === 'full') ? 'flex-grow-1 d-flex flex-column' : ''; ?>">
+                <?php if (isset($content)): ?>
+                    <?php echo $content; ?>
                 <?php endif; ?>
-            </ul>
-        </div>
+            </div>
+        </main>
     </div>
-</nav>
-<div class="container my-4">
-    <?php if (isset($content)): ?>
-        <?php echo $content; ?>
-    <?php endif; ?>
-</div>
 <?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -82,6 +122,7 @@ use App\Core\Auth;
         }
         try {
             localStorage.setItem('gedTheme', theme === 'dark' ? 'dark' : 'light');
+            document.cookie = "gedTheme=" + (theme === 'dark' ? 'dark' : 'light') + "; path=/; max-age=31536000"; // 1 year
         } catch (e) {
         }
     }

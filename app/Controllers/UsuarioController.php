@@ -12,6 +12,36 @@ use App\Models\Departamento;
 
 class UsuarioController extends Controller
 {
+    public function index(): void
+    {
+        if (!Auth::check()) {
+            $this->redirect('/login');
+        }
+
+        $user = Auth::user();
+        if (!isset($user['perfil']) || $user['perfil'] !== 'ADMIN_GERAL') {
+            http_response_code(403);
+            echo 'Acesso restrito';
+            return;
+        }
+
+        $userModel = new User();
+        $usuarios = $userModel->all();
+
+        $departamentoModel = new Departamento();
+        $departamentos = $departamentoModel->all();
+        $deptMap = [];
+        foreach ($departamentos as $d) {
+            $deptMap[$d['id']] = $d['nome'];
+        }
+
+        $this->view('usuarios/index', [
+            'user' => $user,
+            'usuarios' => $usuarios,
+            'deptMap' => $deptMap
+        ]);
+    }
+
     public function create(): void
     {
         if (!Auth::check()) {
@@ -111,7 +141,7 @@ class UsuarioController extends Controller
 
         $userModel->insert($data);
 
-        $this->redirect('/documentos');
+        $this->redirect('/usuarios');
     }
 }
 

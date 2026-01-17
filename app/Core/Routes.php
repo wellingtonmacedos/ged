@@ -34,6 +34,7 @@ class Routes
         $router->get('/departamentos/novo', [DepartamentoController::class, 'create']);
         $router->post('/departamentos/salvar', [DepartamentoController::class, 'store']);
 
+        $router->get('/usuarios', [UsuarioController::class, 'index']);
         $router->get('/usuarios/novo', [UsuarioController::class, 'create']);
         $router->post('/usuarios/salvar', [UsuarioController::class, 'store']);
 

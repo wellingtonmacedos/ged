@@ -14,6 +14,7 @@ $isYearFolder = false;
 $isMonthFolder = false;
 $detectedYear = null;
 $detectedMonth = null;
+$folderDocCounts = isset($folderDocCounts) && is_array($folderDocCounts) ? $folderDocCounts : [];
 
 if ($pasta) {
     if (preg_match('/^\d{4}$/', $pasta['nome'])) {
@@ -33,10 +34,9 @@ if ($pasta) {
 }
 ?>
 
-<!-- Topbar -->
 <div class="zorin-topbar">
     <div class="d-flex align-items-center me-4">
-        <a href="/" class="text-decoration-none text-dark d-flex align-items-center gap-2">
+        <a href="/" class="text-decoration-none d-flex align-items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
             <span class="fw-bold fs-5 tracking-tight">GED Institucional</span>
         </a>
@@ -59,7 +59,7 @@ if ($pasta) {
     </div>
 
     <div class="d-flex align-items-center gap-3">
-        <a href="/documentos/busca" class="text-muted text-decoration-none" title="Buscar">
+        <a href="/documentos/busca" class="text-decoration-none text-muted" title="Buscar">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </a>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="theme-toggle-docs" title="Alternar tema">
@@ -69,7 +69,7 @@ if ($pasta) {
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
         </a>
         <div class="dropdown">
-            <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
                 <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 14px;">
                     <?php echo strtoupper(substr($user['nome'], 0, 1)); ?>
                 </div>
@@ -79,6 +79,7 @@ if ($pasta) {
                 <li><hr class="dropdown-divider"></li>
                 <?php if ($user['perfil'] === 'ADMIN_GERAL'): ?>
                     <li><a class="dropdown-item" href="/departamentos">Departamentos</a></li>
+                    <li><a class="dropdown-item" href="/sistema/backups">Backups</a></li>
                 <?php endif; ?>
                 <li><a class="dropdown-item" href="/pastas">Gerenciar Pastas</a></li>
                 <li><hr class="dropdown-divider"></li>
@@ -260,11 +261,21 @@ if ($pasta) {
                 <div class="p-4 pb-0 folder-view-wrapper">
                     <div class="folder-grid mb-4" id="folder-grid">
                         <?php foreach ($subpastas as $sp): ?>
+                            <?php $folderCount = $folderDocCounts[(int) $sp['id']] ?? 0; ?>
                             <a href="/documentos?pasta_id=<?php echo (int) $sp['id']; ?>" class="text-decoration-none">
                                 <div class="folder-card">
                                     <div class="folder-icon text-primary">📁</div>
-                                    <div class="folder-name" title="<?php echo htmlspecialchars($sp['nome']); ?>">
-                                        <?php echo htmlspecialchars($sp['nome']); ?>
+                                    <div class="folder-text">
+                                        <div class="folder-name" title="<?php echo htmlspecialchars($sp['nome']); ?>">
+                                            <?php echo htmlspecialchars($sp['nome']); ?>
+                                        </div>
+                                        <?php if ($folderCount > 0): ?>
+                                            <div class="folder-meta">
+                                                <span class="folder-count">
+                                                    <?php echo $folderCount; ?> <?php echo $folderCount === 1 ? 'documento' : 'documentos'; ?>
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </a>
@@ -313,11 +324,11 @@ if ($pasta) {
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <span class="me-2">
-                                                        <span class="doc-thumb doc-thumb-small">
-                                                            <span class="doc-thumb-label">PDF</span>
+                                                        <span class="doc-thumb doc-thumb-small doc-type-<?php echo strtolower($doc['tipo']); ?>">
+                                                            <span class="doc-thumb-label"><?php echo htmlspecialchars(strtoupper($doc['tipo'])); ?></span>
                                                         </span>
                                                     </span>
-                                                    <span class="fw-medium text-dark"><?php echo htmlspecialchars($doc['titulo']); ?></span>
+                                                    <span class="fw-semibold"><?php echo htmlspecialchars($doc['titulo']); ?></span>
                                                 </div>
                                             </td>
                                             <td>
@@ -365,8 +376,8 @@ if ($pasta) {
                             ?>
                             <div class="doc-card">
                                 <div class="doc-card-thumb">
-                                    <div class="doc-thumb">
-                                        <span class="doc-thumb-label">PDF</span>
+                                    <div class="doc-thumb doc-type-<?php echo strtolower($doc['tipo']); ?>">
+                                        <span class="doc-thumb-label"><?php echo htmlspecialchars(strtoupper($doc['tipo'])); ?></span>
                                     </div>
                                 </div>
                                 <div class="doc-card-title-row">
@@ -408,7 +419,7 @@ if ($pasta) {
         <div class="batch-actions" id="batch-actions-bar" role="region" aria-label="Ações em lote de documentos">
             <span class="fw-bold"><span id="selected-count">0</span> selecionados</span>
             <div class="vr bg-white opacity-25"></div>
-            <button class="btn btn-sm btn-light text-dark rounded-pill px-3" type="button" onclick="batchDownload()" aria-label="Download em lote dos documentos selecionados">
+            <button class="btn btn-sm btn-light rounded-pill px-3" type="button" onclick="batchDownload()" aria-label="Download em lote dos documentos selecionados">
                 ⬇️ Download
             </button>
             <button class="btn btn-sm btn-outline-light rounded-pill px-3" type="button" onclick="batchAudit()" aria-label="Exportar auditoria em lote dos documentos selecionados">
@@ -646,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // Folder Link
                     const item = document.createElement('a');
                     item.href = '/documentos?pasta_id=' + pasta.id;
-                    item.classList.add('folder-item', 'text-truncate', 'text-decoration-none', 'text-dark', 'd-flex', 'align-items-center', 'flex-grow-1');
+                    item.classList.add('folder-item', 'text-truncate', 'text-decoration-none', 'd-flex', 'align-items-center', 'flex-grow-1');
                     if (currentPastaId == pasta.id) {
                         item.classList.add('fw-bold', 'text-primary');
                     }
@@ -738,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     deptContainer.classList.add('dept-item-container', 'mb-1');
                     
                     const deptHeader = document.createElement('div');
-                    deptHeader.classList.add('folder-item', 'fw-bold', 'text-dark');
+                    deptHeader.classList.add('folder-item', 'fw-bold');
                     deptHeader.style.cursor = 'pointer';
                     deptHeader.innerHTML = `
                         <span class="icon">🏢</span>

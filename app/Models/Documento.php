@@ -18,6 +18,39 @@ class Documento extends Model
         return $stmt->fetchAll();
     }
 
+    public function countByPastaIds(array $pastaIds): array
+    {
+        if (empty($pastaIds)) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach (array_values($pastaIds) as $index => $id) {
+            $key = ':id' . $index;
+            $placeholders[] = $key;
+            $params[$key] = (int) $id;
+        }
+
+        $sql = 'SELECT pasta_id, COUNT(*) AS total FROM documentos WHERE pasta_id IN (' . implode(',', $placeholders) . ') GROUP BY pasta_id';
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $result[(int) $row['pasta_id']] = (int) $row['total'];
+        }
+
+        return $result;
+    }
+
     public function searchInFolder(int $pastaId, string $termo): array
     {
         // Busca por título ou conteúdo OCR (se existir) dentro da pasta

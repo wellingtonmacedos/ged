@@ -1,7 +1,3 @@
-<?php
-$title = 'Gerenciar Departamentos';
-ob_start();
-?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Departamentos</h1>
@@ -44,7 +40,4 @@ ob_start();
     </div>
 </div>
 
-<?php
-$content = ob_get_clean();
-require __DIR__ . '/../layout/main.php';
-?>
+

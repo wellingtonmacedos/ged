@@ -46,8 +46,15 @@ class DocumentoController extends Controller
 
         if ($pastaId <= 0) {
             $subpastasRoot = [];
+            $folderDocCounts = [];
             if (isset($user['departamento_id'])) {
                 $subpastasRoot = $this->pasta->findByDepartamentoAndParent((int) $user['departamento_id'], null);
+                if (!empty($subpastasRoot)) {
+                    $ids = array_map(static function (array $p): int {
+                        return (int) $p['id'];
+                    }, $subpastasRoot);
+                    $folderDocCounts = $this->documento->countByPastaIds($ids);
+                }
             }
             $this->view('documentos/index', [
                 'user' => $user,
@@ -55,7 +62,9 @@ class DocumentoController extends Controller
                 'breadcrumb' => [],
                 'documentos' => [],
                 'subpastas' => $subpastasRoot,
-                'fullScreen' => true,
+                'folderDocCounts' => $folderDocCounts,
+                'layoutMode' => 'full',
+                'hideHeader' => true
             ]);
             return;
         }
@@ -84,8 +93,15 @@ class DocumentoController extends Controller
         $breadcrumb = $this->pasta->getBreadcrumb($pastaId);
 
         $subpastas = [];
+        $folderDocCounts = [];
         if (isset($user['departamento_id'])) {
             $subpastas = $this->pasta->findByDepartamentoAndParent((int) $user['departamento_id'], $pastaId);
+            if (!empty($subpastas)) {
+                $ids = array_map(static function (array $p): int {
+                    return (int) $p['id'];
+                }, $subpastas);
+                $folderDocCounts = $this->documento->countByPastaIds($ids);
+            }
         }
 
         $this->view('documentos/index', [
@@ -94,7 +110,9 @@ class DocumentoController extends Controller
             'breadcrumb' => $breadcrumb,
             'documentos' => $documentos,
             'subpastas' => $subpastas,
-            'fullScreen' => true,
+            'folderDocCounts' => $folderDocCounts,
+            'layoutMode' => 'full',
+            'hideHeader' => true
         ]);
     }
 

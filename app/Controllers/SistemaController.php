@@ -32,7 +32,7 @@ class SistemaController extends Controller
         (new RateLimiterService(5, 60))->check('sistema_auditoria_verificar');
 
         $user = Auth::user();
-        if (!isset($user['perfil']) || $user['perfil'] !== 'SUPER_ADMIN') {
+        if (!isset($user['perfil']) || !in_array($user['perfil'], ['ADMIN_GERAL', 'SUPER_ADMIN'], true)) {
             http_response_code(403);
             echo 'Acesso restrito';
             return;
@@ -65,7 +65,7 @@ class SistemaController extends Controller
         (new RateLimiterService(5, 60))->check('sistema_backups');
 
         $user = Auth::user();
-        if (!isset($user['perfil']) || $user['perfil'] !== 'SUPER_ADMIN') {
+        if (!isset($user['perfil']) || !in_array($user['perfil'], ['ADMIN_GERAL', 'SUPER_ADMIN'], true)) {
             http_response_code(403);
             echo 'Acesso restrito';
             return;
@@ -92,7 +92,7 @@ class SistemaController extends Controller
         (new RateLimiterService(3, 60))->check('sistema_backups_executar');
 
         $user = Auth::user();
-        if (!isset($user['perfil']) || $user['perfil'] !== 'SUPER_ADMIN') {
+        if (!isset($user['perfil']) || !in_array($user['perfil'], ['ADMIN_GERAL', 'SUPER_ADMIN'], true)) {
             http_response_code(403);
             echo 'Acesso restrito';
             return;
@@ -125,7 +125,7 @@ class SistemaController extends Controller
         (new RateLimiterService(5, 60))->check('sistema_backups_download');
 
         $user = Auth::user();
-        if (!isset($user['perfil']) || $user['perfil'] !== 'SUPER_ADMIN') {
+        if (!isset($user['perfil']) || !in_array($user['perfil'], ['ADMIN_GERAL', 'SUPER_ADMIN'], true)) {
             http_response_code(403);
             echo 'Acesso restrito';
             return;
