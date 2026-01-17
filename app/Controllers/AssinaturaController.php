@@ -155,6 +155,128 @@ class AssinaturaController extends Controller
         $this->redirect('/assinaturas/painel');
     }
 
+    private function buildIcpMessage(int $documentoId, int $assinaturaId, int $usuarioId): string
+    {
+        return 'DOC:' . $documentoId . ';ASS:' . $assinaturaId . ';USER:' . $usuarioId;
+    }
+
+    public function assinarIcp(): void
+    {
+        if (!Auth::check()) {
+            $this->redirect('/login');
+        }
+
+        Security::requireCsrfToken();
+
+        $user = Auth::user();
+
+        $assinaturaId = isset($_POST['assinatura_id']) ? (int) $_POST['assinatura_id'] : 0;
+        if ($assinaturaId <= 0) {
+            http_response_code(400);
+            echo 'Assinatura inválida';
+            return;
+        }
+
+        $assinatura = $this->assinatura->find($assinaturaId);
+        if (!$assinatura) {
+            http_response_code(404);
+            echo 'Registro de assinatura não encontrado';
+            return;
+        }
+
+        if ((int) $assinatura['usuario_id'] !== (int) $user['id']) {
+            http_response_code(403);
+            echo 'Esta assinatura não pertence ao usuário';
+            return;
+        }
+
+        $documento = $this->documento->find((int) $assinatura['documento_id']);
+        if (!$documento) {
+            http_response_code(404);
+            echo 'Documento não encontrado';
+            return;
+        }
+
+        $pastaId = (int) $documento['pasta_id'];
+        if (!$this->permissao->canSign((int) $user['id'], $pastaId, $user['perfil'])) {
+            http_response_code(403);
+            echo 'Sem permissão para assinar documentos nesta pasta';
+            return;
+        }
+
+        $proxima = $this->assinatura->proximaPendente((int) $assinatura['documento_id']);
+        if (!$proxima || (int) $proxima['id'] !== $assinaturaId) {
+            http_response_code(400);
+            echo 'Ainda não é a vez desta assinatura';
+            return;
+        }
+
+        $assinaturaBase64 = isset($_POST['assinatura_icp']) ? (string) $_POST['assinatura_icp'] : '';
+        $certificadoPem = isset($_POST['certificado_pem']) ? (string) $_POST['certificado_pem'] : '';
+
+        if ($assinaturaBase64 === '' || $certificadoPem === '') {
+            http_response_code(400);
+            echo 'Dados de assinatura ICP-Brasil ausentes';
+            return;
+        }
+
+        $assinaturaBin = base64_decode($assinaturaBase64, true);
+        if ($assinaturaBin === false) {
+            http_response_code(400);
+            echo 'Assinatura ICP-Brasil inválida';
+            return;
+        }
+
+        $mensagem = $this->buildIcpMessage((int) $assinatura['documento_id'], $assinaturaId, (int) $user['id']);
+
+        $certResource = openssl_x509_read($certificadoPem);
+        if ($certResource === false) {
+            http_response_code(400);
+            echo 'Certificado ICP-Brasil inválido';
+            return;
+        }
+
+        $publicKey = openssl_pkey_get_public($certResource);
+        if ($publicKey === false) {
+            http_response_code(400);
+            echo 'Chave pública do certificado não encontrada';
+            return;
+        }
+
+        $ok = openssl_verify($mensagem, $assinaturaBin, $publicKey, OPENSSL_ALGO_SHA256);
+        if ($ok !== 1) {
+            http_response_code(400);
+            echo 'Assinatura ICP-Brasil não confere com o certificado';
+            return;
+        }
+
+        $certData = openssl_x509_parse($certResource);
+        $subject = isset($certData['subject']) ? $certData['subject'] : [];
+        $serial = isset($certData['serialNumberHex']) ? $certData['serialNumberHex'] : null;
+
+        $nomeCert = isset($subject['CN']) ? (string) $subject['CN'] : null;
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+
+        $this->assinatura->update($assinaturaId, [
+            'status' => 'ASSINADO',
+            'ip' => $ip,
+            'assinado_em' => date('Y-m-d H:i:s'),
+            'assinatura_imagem' => $nomeCert,
+        ]);
+
+        $restantes = $this->assinatura->pendentesPorDocumento((int) $assinatura['documento_id']);
+        if (count($restantes) === 0) {
+            $this->documento->update((int) $assinatura['documento_id'], ['status' => 'ASSINADO']);
+        } else {
+            $this->documento->update((int) $assinatura['documento_id'], ['status' => 'PENDENTE_ASSINATURA']);
+        }
+
+        $this->audit->log('ASSINAR_DOCUMENTO_ICP', 'documentos', (int) $assinatura['documento_id']);
+
+        $this->redirect('/assinaturas/painel');
+    }
+
     public function configurar(): void
     {
         if (!Auth::check()) {

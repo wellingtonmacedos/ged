@@ -11,12 +11,14 @@ use App\Controllers\AssinaturaController;
 use App\Controllers\SistemaController;
 use App\Controllers\DepartamentoController;
 use App\Controllers\UsuarioController;
+use App\Controllers\RelatorioController;
 
 class Routes
 {
     public static function register(Router $router): void
     {
         $router->get('/', [DashboardController::class, 'index']);
+        $router->get('/dashboard/gerencial', [DashboardController::class, 'gerencial']);
 
         $router->get('/login', [AuthController::class, 'showLogin']);
         $router->post('/login', [AuthController::class, 'login']);
@@ -38,6 +40,7 @@ class Routes
         $router->get('/documentos', [DocumentoController::class, 'index']);
         $router->post('/documentos/upload', [DocumentoController::class, 'upload']);
         $router->get('/documentos/download', [DocumentoController::class, 'download']);
+        $router->post('/documentos/acoes-lote', [DocumentoController::class, 'acoesLote']);
         $router->get('/documentos/stream', [DocumentoController::class, 'stream']);
         $router->get('/documentos/visualizar', [DocumentoController::class, 'visualizar']);
         $router->get('/documentos/busca', [DocumentoController::class, 'busca']);
@@ -46,11 +49,20 @@ class Routes
 
         $router->get('/assinaturas/painel', [AssinaturaController::class, 'painel']);
         $router->post('/assinaturas/assinar', [AssinaturaController::class, 'assinar']);
+        $router->post('/assinaturas/assinar-icp', [AssinaturaController::class, 'assinarIcp']);
         $router->get('/assinaturas/configurar', [AssinaturaController::class, 'configurar']);
         $router->post('/assinaturas/configurar', [AssinaturaController::class, 'salvarConfiguracao']);
 
         $router->get('/sistema/auditoria/verificar', [SistemaController::class, 'verificarAuditoria']);
-$router->get('/sistema/auditoria/verificar/exportar', [SistemaController::class, 'verificarAuditoriaExportar']);
+        $router->get('/sistema/auditoria/verificar/exportar', [SistemaController::class, 'verificarAuditoriaExportar']);
+
+        $router->get('/sistema/backups', [SistemaController::class, 'backups']);
+        $router->post('/sistema/backups/executar', [SistemaController::class, 'backupsExecutar']);
+        $router->post('/sistema/backups/download', [SistemaController::class, 'backupsDownload']);
+
+        $router->get('/relatorios', [RelatorioController::class, 'index']);
+        $router->post('/relatorios/gerar', [RelatorioController::class, 'gerar']);
+        $router->get('/relatorios/exportar', [RelatorioController::class, 'exportar']);
 
 // Rotas de Teste (Remover em produção)
 $router->get('/test/audit/setup', [\App\Controllers\TestController::class, 'setup']);

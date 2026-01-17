@@ -17,42 +17,45 @@ use App\Core\Auth;
     <?php echo $content; ?>
 <?php else: ?>
     <!-- Standard Layout -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" role="navigation" aria-label="Navegação principal">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">GED Institucional</a>
+        <a class="navbar-brand" href="/" aria-label="Página inicial do GED Institucional">GED Institucional</a>
         <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto" role="menubar">
                 <?php if (Auth::check()): ?>
                     <?php $currentUser = Auth::user(); ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">Dashboard</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/" role="menuitem">Dashboard</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/documentos">Arquivos</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/documentos" role="menuitem">Arquivos</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/departamentos">Departamentos</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/relatorios" role="menuitem">Relatórios</a>
+                    </li>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/departamentos" role="menuitem">Departamentos</a>
                     </li>
                     <?php if ($currentUser && isset($currentUser['perfil']) && $currentUser['perfil'] === 'ADMIN_GERAL'): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/usuarios/novo">Usuários</a>
+                        <li class="nav-item" role="none">
+                            <a class="nav-link" href="/usuarios/novo" role="menuitem">Usuários</a>
                         </li>
                     <?php endif; ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/assinaturas/painel">Assinaturas</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/assinaturas/painel" role="menuitem">Assinaturas</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/documentos/busca">Busca Avançada</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/documentos/busca" role="menuitem">Busca Avançada</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="theme-toggle-main">Tema</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="#" id="theme-toggle-main" role="menuitem" aria-label="Alternar tema claro e escuro">Tema</a>
                     </li>
-                    <li class="nav-item ms-3">
-                        <a class="nav-link text-danger" href="/logout">Sair</a>
+                    <li class="nav-item ms-3" role="none">
+                        <a class="nav-link text-danger" href="/logout" role="menuitem">Sair</a>
                     </li>
                 <?php else: ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/login">Entrar</a>
+                    <li class="nav-item" role="none">
+                        <a class="nav-link" href="/login" role="menuitem">Entrar</a>
                     </li>
                 <?php endif; ?>
             </ul>

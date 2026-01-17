@@ -119,3 +119,42 @@ CREATE TABLE documentos_ocr (
 CREATE FULLTEXT INDEX idx_doc_ocr_texto ON documentos_ocr (texto_extraido);
 CREATE INDEX idx_doc_ocr_documento ON documentos_ocr (documento_id);
 CREATE INDEX idx_doc_ocr_arquivo ON documentos_ocr (documento_arquivo_id);
+
+CREATE TABLE logs_operacionais (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    tenant_id BIGINT UNSIGNED NULL,
+    usuario_id BIGINT UNSIGNED NULL,
+    acao VARCHAR(255) NOT NULL,
+    entidade VARCHAR(100) NOT NULL,
+    entidade_id BIGINT UNSIGNED NULL,
+    ip VARCHAR(50) NULL,
+    dados TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rate_limits (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    usuario_id BIGINT UNSIGNED NULL,
+    ip VARCHAR(50) NOT NULL,
+    rota VARCHAR(255) NOT NULL,
+    janela_inicio DATETIME NOT NULL,
+    contador INT UNSIGNED NOT NULL DEFAULT 0
+);
+
+CREATE TABLE backups (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    tipo ENUM('MANUAL','AUTOMATICO') NOT NULL,
+    escopo ENUM('BANCO','ARQUIVOS','COMPLETO') NOT NULL,
+    caminho_arquivo VARCHAR(500) NOT NULL,
+    tamanho_mb DECIMAL(10,2) NULL,
+    status ENUM('SUCESSO','FALHA') NOT NULL,
+    iniciado_em DATETIME NOT NULL,
+    finalizado_em DATETIME NULL,
+    usuario_id BIGINT UNSIGNED NULL,
+    erro TEXT NULL,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_backups_usuario FOREIGN KEY (usuario_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_backups_status ON backups (status);
+CREATE INDEX idx_backups_iniciado_em ON backups (iniciado_em);

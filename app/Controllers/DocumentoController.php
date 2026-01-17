@@ -55,6 +55,7 @@ class DocumentoController extends Controller
                 'breadcrumb' => [],
                 'documentos' => [],
                 'subpastas' => $subpastasRoot,
+                'fullScreen' => true,
             ]);
             return;
         }
@@ -180,6 +181,33 @@ class DocumentoController extends Controller
     {
         $this->audit->log('DOWNLOAD_DOCUMENTO', 'documentos', isset($_GET['id']) ? (int)$_GET['id'] : null);
         $this->serveFile(true);
+    }
+
+    public function acoesLote(): void
+    {
+        if (!Auth::check()) {
+            $this->redirect('/login');
+        }
+
+        Security::requireCsrfToken();
+
+        $acao = isset($_POST['acao']) ? (string) $_POST['acao'] : '';
+        $ids = isset($_POST['ids']) && is_array($_POST['ids']) ? $_POST['ids'] : [];
+
+        $service = new \App\Services\BatchActionService();
+
+        if ($acao === 'download') {
+            $service->executarDownloadZip($ids);
+            return;
+        }
+
+        if ($acao === 'auditoria') {
+            $service->exportarAuditoriaLote($ids);
+            return;
+        }
+
+        http_response_code(400);
+        echo 'Ação inválida';
     }
 
     public function stream(): void

@@ -312,7 +312,11 @@ if ($pasta) {
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <span class="file-icon icon-default">DOC</span>
+                                                    <span class="me-2">
+                                                        <span class="doc-thumb doc-thumb-small">
+                                                            <span class="doc-thumb-label">PDF</span>
+                                                        </span>
+                                                    </span>
                                                     <span class="fw-medium text-dark"><?php echo htmlspecialchars($doc['titulo']); ?></span>
                                                 </div>
                                             </td>
@@ -350,21 +354,29 @@ if ($pasta) {
                     <?php if (!empty($documentos)): ?>
                     <div class="doc-grid" id="doc-grid">
                         <?php foreach ($documentos as $doc): ?>
+                            <?php
+                            $statusClass = match($doc['status']) {
+                                'EM_EDICAO' => 'status-em_edicao',
+                                'PENDENTE_ASSINATURA' => 'status-pendente',
+                                'ASSINADO' => 'status-assinado',
+                                default => 'bg-secondary text-white'
+                            };
+                            $isSigned = $doc['status'] === 'ASSINADO';
+                            ?>
                             <div class="doc-card">
-                                <div class="doc-card-header">
-                                    <span class="file-icon icon-default">DOC</span>
+                                <div class="doc-card-thumb">
+                                    <div class="doc-thumb">
+                                        <span class="doc-thumb-label">PDF</span>
+                                    </div>
+                                </div>
+                                <div class="doc-card-title-row">
+                                    <?php if ($isSigned): ?>
+                                        <span class="doc-status-dot doc-status-dot-success">✔</span>
+                                    <?php endif; ?>
                                     <span class="doc-card-title"><?php echo htmlspecialchars($doc['titulo']); ?></span>
                                 </div>
                                 <div class="doc-card-meta">
                                     <span>
-                                        <?php
-                                        $statusClass = match($doc['status']) {
-                                            'EM_EDICAO' => 'status-em_edicao',
-                                            'PENDENTE_ASSINATURA' => 'status-pendente',
-                                            'ASSINADO' => 'status-assinado',
-                                            default => 'bg-secondary text-white'
-                                        };
-                                        ?>
                                         <span class="status-badge <?php echo $statusClass; ?>">
                                             <?php echo htmlspecialchars(str_replace('_', ' ', $doc['status'])); ?>
                                         </span>
@@ -393,13 +405,13 @@ if ($pasta) {
         </div>
         
         <!-- Batch Actions Bar -->
-        <div class="batch-actions" id="batch-actions-bar">
+        <div class="batch-actions" id="batch-actions-bar" role="region" aria-label="Ações em lote de documentos">
             <span class="fw-bold"><span id="selected-count">0</span> selecionados</span>
             <div class="vr bg-white opacity-25"></div>
-            <button class="btn btn-sm btn-light text-dark rounded-pill px-3" onclick="batchDownload()">
+            <button class="btn btn-sm btn-light text-dark rounded-pill px-3" type="button" onclick="batchDownload()" aria-label="Download em lote dos documentos selecionados">
                 ⬇️ Download
             </button>
-            <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="batchAudit()">
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3" type="button" onclick="batchAudit()" aria-label="Exportar auditoria em lote dos documentos selecionados">
                 📋 Exportar Auditoria
             </button>
         </div>
@@ -821,20 +833,78 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function batchDownload() {
-    // Implement batch download logic
-    // Collect IDs and send to backend
     const checked = document.querySelectorAll('.doc-check:checked');
     const ids = Array.from(checked).map(cb => cb.value);
-    if (ids.length === 0) return;
-    
-    alert('Funcionalidade de Download em Lote será implementada em breve.\nIDs: ' + ids.join(', '));
+    if (ids.length === 0) {
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/documentos/acoes-lote';
+
+    const csrf = document.querySelector('input[name="csrf_token"]');
+    if (csrf) {
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = csrf.value;
+        form.appendChild(tokenInput);
+    }
+
+    const acaoInput = document.createElement('input');
+    acaoInput.type = 'hidden';
+    acaoInput.name = 'acao';
+    acaoInput.value = 'download';
+    form.appendChild(acaoInput);
+
+    ids.forEach(function(id) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'ids[]';
+        hidden.value = id;
+        form.appendChild(hidden);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function batchAudit() {
     const checked = document.querySelectorAll('.doc-check:checked');
     const ids = Array.from(checked).map(cb => cb.value);
-    if (ids.length === 0) return;
+    if (ids.length === 0) {
+        return;
+    }
 
-    alert('Funcionalidade de Auditoria em Lote será implementada em breve.\nIDs: ' + ids.join(', '));
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/documentos/acoes-lote';
+
+    const csrf = document.querySelector('input[name="csrf_token"]');
+    if (csrf) {
+        const tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'csrf_token';
+        tokenInput.value = csrf.value;
+        form.appendChild(tokenInput);
+    }
+
+    const acaoInput = document.createElement('input');
+    acaoInput.type = 'hidden';
+    acaoInput.name = 'acao';
+    acaoInput.value = 'auditoria';
+    form.appendChild(acaoInput);
+
+    ids.forEach(function(id) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'ids[]';
+        hidden.value = id;
+        form.appendChild(hidden);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
